@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RSA Encryption Program</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>RSA Encryption Program</h1>
+
+      <!-- Key Generation Section -->
+      <section id="key-generation">
+        <h2>Generate RSA Keys</h2>
+        <label for="p">Enter Prime P:</label>
+        <input type="number" id="p" placeholder="Prime P (optional)" />
+        <label for="q">Enter Prime Q:</label>
+        <input type="number" id="q" placeholder="Prime Q (optional)" />
+        <button onclick="generateKeys()">Generate Keys</button>
+        <div id="keys-output" class="hidden">
+          <p id="key-details"></p>
+          <p id="public-key"></p>
+          <p id="private-key"></p>
+        </div>
+      </section>
+
+      <!-- Encryption Section -->
+      <section id="encryption" class="hidden">
+        <h2>Encrypt Message</h2>
+        <textarea id="message" placeholder="Enter your message"></textarea>
+        <label for="e">Public Key (E):</label>
+        <input type="number" id="e" />
+        <label for="n-encrypt">Modulus (N):</label>
+        <input type="number" id="n-encrypt" />
+        <button onclick="encryptMessage()">Encrypt</button>
+        <p id="encrypted-output"></p>
+      </section>
+
+      <!-- Decryption Section -->
+      <section id="decryption" class="hidden">
+        <h2>Decrypt Message</h2>
+        <textarea
+          id="encrypted-message"
+          placeholder="Enter encrypted message (comma-separated)"
+        ></textarea>
+        <label for="d">Private Key (D):</label>
+        <input type="number" id="d" />
+        <label for="n-decrypt">Modulus (N):</label>
+        <input type="number" id="n-decrypt" />
+        <button onclick="decryptMessage()">Decrypt</button>
+        <p id="decrypted-output"></p>
+      </section>
+    </div>
+
+    <script>
+      async function generateKeys() {
+        const p = document.getElementById("p").value;
+        const q = document.getElementById("q").value;
+
+        const response = await fetch("/generate_keys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ p, q }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert(error.error);
+          return;
+        }
+
+        const data = await response.json();
+        document.getElementById(
+          "key-details"
+        ).innerText = `P: ${data.details.p}, Q: ${data.details.q}, Φ: ${data.details.phi}`;
+        document.getElementById(
+          "public-key"
+        ).innerText = `Public Key (E, N): (${data.public_key[0]}, ${data.public_key[1]})`;
+        document.getElementById(
+          "private-key"
+        ).innerText = `Private Key (D, N): (${data.private_key[0]}, ${data.private_key[1]})`;
+        document.getElementById("keys-output").classList.remove("hidden");
+        document.getElementById("encryption").classList.remove("hidden");
+        document.getElementById("decryption").classList.remove("hidden");
+      }
+
+      async function encryptMessage() {
+        const message = document.getElementById("message").value;
+        const e = document.getElementById("e").value;
+        const n = document.getElementById("n-encrypt").value;
+
+        const response = await fetch("/encrypt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, e, n }),
+        });
+
+        const data = await response.json();
+        document.getElementById(
+          "encrypted-output"
+        ).innerText = `Encrypted Message: ${data.encrypted.join(", ")}`;
+      }
+
+      async function decryptMessage() {
+        const encrypted = document
+          .getElementById("encrypted-message")
+          .value.split(",")
+          .map((str) => str.trim());
+        const d = document.getElementById("d").value;
+        const n = document.getElementById("n-decrypt").value;
+
+        const response = await fetch("/decrypt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ encrypted, d, n }),
+        });
+
+        const data = await response.json();
+        document.getElementById(
+          "decrypted-output"
+        ).innerText = `Decrypted Message: ${data.decrypted}`;
+      }
+    </script>
+  </body>
+</html>
